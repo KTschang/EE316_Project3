@@ -74,18 +74,18 @@ begin
     Enable  <= '1';
     Input   <= x"00";
     reset   <= '0';
-    wait for 6 ms;
+    wait for 3 ms;
    
    
     Enable  <= '1';
     Input   <= x"FF";
     reset   <= '0';
-    wait for 1 ms;
+    wait for 3 ms;
     
      Enable  <= '1';
     Input   <= x"6D";
     reset   <= '0';
-    wait for 1 ms;
+    wait for 3 ms;
     
     Enable  <= '0';
     Input   <= x"FF";
