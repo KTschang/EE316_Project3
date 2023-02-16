@@ -18,7 +18,7 @@ end Clock_Gen;
 
 architecture Behavioral of Clock_Gen is
 
-constant StepNum          : integer := 130;
+constant StepNum          : integer := 131;
 
 --signal Internal_vect       : std_logic_vector(8 downto 0) := x"000"; 
 signal Clk_out_cnt         : integer   := 0;
