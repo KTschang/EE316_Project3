@@ -66,9 +66,9 @@ TYPE state_type IS (start, ready, data_valid, busy_high, repeat);
 signal state : state_type := start;
 signal reset_n, ena, rw, busy : std_logic;
 signal addr_master : std_logic_vector(6 downto 0) := "0100111";
-signal data_wr : std_logic_vector(7 downto 0);
+signal data_wr_sig : std_logic_vector(7 downto 0) := X"00";
 signal pwm_byte : std_logic_vector(7 downto 0); -- Final byte to display AIN#
-signal byteSel : integer range 0 to 1000 := 0;
+signal byteSel : integer range 0 to 500 := 0;
 
 
 begin
@@ -83,7 +83,7 @@ Inst_i2c_master: i2c_master
             ena       => ena,         
             addr      => addr_master,
             rw        => rw,      
-            data_wr   => data_wr,
+            data_wr   => data_wr_sig,
             busy      => busy,           
             data_rd   => open,
             ack_error => open,
@@ -100,154 +100,157 @@ Inst_i2c_master: i2c_master
             when "11" => pwm_byte <= X"33"; -- ASCII = 3
             when others => null;
         end case;
-           
+    end process;
+    
+    process(byteSel)
+    begin
         case byteSel is
-           when 0 => data_wr <= X"20"; -- set in 4-bit mode
-           when 1 => data_wr <= X"38"; -- 0x38 2 lines and 5x7 matrix command
-           when 2 => data_wr <= X"3C";
-           when 3 => data_wr <= X"38";
-           when 4 => data_wr <= X"88";
-           when 5 => data_wr <= X"8C";
-           when 6 => data_wr <= X"88";
-           when 7 => data_wr <= X"38"; -- 0x38
-           when 8 => data_wr <= X"3C";
-           when 9 => data_wr <= X"38";
-           when 10 => data_wr <= X"88";
-           when 11 => data_wr <= X"8C";
-           when 12 => data_wr <= X"88";
-           when 13 => data_wr <= X"38"; -- 0x38
-           when 14 => data_wr <= X"3C";
-           when 15 => data_wr <= X"38";
-           when 16 => data_wr <= X"88";
-           when 17 => data_wr <= X"8C";
-           when 18 => data_wr <= X"88";
-           when 19 => data_wr <= X"08"; -- 0x01 Clear display screen command
-           when 20 => data_wr <= X"0C";
-           when 21 => data_wr <= X"08";
-           when 22 => data_wr <= X"18";
-           when 23 => data_wr <= X"1C";
-           when 24 => data_wr <= X"18";
-           when 25 => data_wr <= X"08"; -- 0x0C Display on, cursor off command 
-           when 26 => data_wr <= X"0C";
-           when 27 => data_wr <= X"08";
-           when 28 => data_wr <= X"C8";
-           when 29 => data_wr <= X"CC";
-           when 30 => data_wr <= X"C8";
-           when 31 => data_wr <= X"08"; -- 0x06 Increment cursor command
-           when 32 => data_wr <= X"0C";
-           when 33 => data_wr <= X"08";
-           when 34 => data_wr <= X"68";
-           when 35 => data_wr <= X"6C";
-           when 36 => data_wr <= X"68";
-           when 37 => data_wr <= X"88"; -- 0x80 1st line command
-           when 38 => data_wr <= X"8C";
-           when 39 => data_wr <= X"88";
-           when 40 => data_wr <= X"08";
-           when 41 => data_wr <= X"0C";
-           when 42 => data_wr <= X"08";
-           when 43 => data_wr <= X"49"; -- 0x41 'A' ASCII Data
-           when 44 => data_wr <= X"4D";
-           when 45 => data_wr <= X"49";
-           when 46 => data_wr <= X"19";
-           when 47 => data_wr <= X"1D";
-           when 48 => data_wr <= X"19";
-           when 49 => data_wr <= X"49"; -- 0x49 'I' ASCII Data
-           when 50 => data_wr <= X"4D";
-           when 51 => data_wr <= X"49";
-           when 52 => data_wr <= X"99";
-           when 53 => data_wr <= X"9D";
-           when 54 => data_wr <= X"99";
-           when 55 => data_wr <= X"49"; -- 0x4E 'N' ASCII Data
-           when 56 => data_wr <= X"4D";
-           when 57 => data_wr <= X"49";
-           when 58 => data_wr <= X"E9";
-           when 59 => data_wr <= X"ED";
-           when 60 => data_wr <= X"E9";
-           when 61 => data_wr <= pwm_byte(7 downto 4)&X"9"; -- Source # ASCII Data
-           when 62 => data_wr <= pwm_byte(7 downto 4)&X"D";
-           when 63 => data_wr <= pwm_byte(7 downto 4)&X"9";
-           when 64 => data_wr <= pwm_byte(3 downto 0)&X"9";
-           when 65 => data_wr <= pwm_byte(3 downto 0)&X"D";
-           when 66 => data_wr <= pwm_byte(3 downto 0)&X"9";
-           when 67 => data_wr <= X"C8"; -- 0xC0 2nd line command
-           when 68 => data_wr <= X"CC";
-           when 69 => data_wr <= X"C8";
-           when 70 => data_wr <= X"08";
-           when 71 => data_wr <= X"0C";
-           when 72 => data_wr <= X"08";
-           when 73 => data_wr <= X"49"; -- 0x43 'C' ASCII Data
-           when 74 => data_wr <= X"4D";
-           when 75 => data_wr <= X"49";
-           when 76 => data_wr <= X"39";
-           when 77 => data_wr <= X"3D";
-           when 78 => data_wr <= X"39";
-           when 79 => data_wr <= X"69"; -- 0x6C 'l' ASCII Data
-           when 80 => data_wr <= X"6D";
-           when 81 => data_wr <= X"69";
-           when 82 => data_wr <= X"C9";
-           when 83 => data_wr <= X"CD";
-           when 84 => data_wr <= X"C9";
-           when 85 => data_wr <= X"69"; -- 0x6C 'o' ASCII Data
-           when 86 => data_wr <= X"6D";
-           when 87 => data_wr <= X"69";
-           when 88 => data_wr <= X"C9";
-           when 89 => data_wr <= X"CD";
-           when 90 => data_wr <= X"C9";
-           when 91 => data_wr <= X"69"; -- 0x63 'c' ASCII Data
-           when 92 => data_wr <= X"6D";
-           when 93 => data_wr <= X"69";
-           when 94 => data_wr <= X"39";
-           when 95 => data_wr <= X"3D";
-           when 96 => data_wr <= X"39";
-           when 97 => data_wr <= X"69"; -- 0x6B 'k' ASCII Data
-           when 98 => data_wr <= X"6D";
-           when 99 => data_wr <= X"69";
-           when 100 => data_wr <= X"B9";
-           when 101 => data_wr <= X"BD";
-           when 102 => data_wr <= X"B9";
-           when 103 => data_wr <= X"29"; -- 0x20 ' ' ASCII Data
-           when 104 => data_wr <= X"2D";
-           when 105 => data_wr <= X"29";
-           when 106 => data_wr <= X"09";
-           when 107 => data_wr <= X"0D";
-           when 108 => data_wr <= X"09";
-           when 109 => data_wr <= X"49"; -- 0x4F 'O' ASCII Data
-           when 110 => data_wr <= X"4D";
-           when 111 => data_wr <= X"49";
-           when 112 => data_wr <= X"F9";
-           when 113 => data_wr <= X"FD";
-           when 114 => data_wr <= X"F9";
-           when 115 => data_wr <= X"79"; -- 0x75 'u' ASCII Data
-           when 116 => data_wr <= X"7D";
-           when 117 => data_wr <= X"79";
-           when 118 => data_wr <= X"59";
-           when 119 => data_wr <= X"5D";
-           when 120 => data_wr <= X"59";
-           when 121 => data_wr <= X"79"; -- 0x74 't' ASCII Data
-           when 122 => data_wr <= X"7D";
-           when 123 => data_wr <= X"79";
-           when 124 => data_wr <= X"49";
-           when 125 => data_wr <= X"4D";
-           when 126 => data_wr <= X"49";
-           when 127 => data_wr <= X"79"; -- 0x70 'p' ASCII Data
-           when 128 => data_wr <= X"7D";
-           when 129 => data_wr <= X"79";
-           when 130 => data_wr <= X"09";
-           when 131 => data_wr <= X"0D";
-           when 132 => data_wr <= X"09";
-           when 133 => data_wr <= X"79"; -- 0x75 'u' ASCII Data
-           when 134 => data_wr <= X"7D";
-           when 135 => data_wr <= X"79";
-           when 136 => data_wr <= X"59";
-           when 137 => data_wr <= X"5D";
-           when 138 => data_wr <= X"59";
-           when 139 => data_wr <= X"79"; -- 0x74 't' ASCII Data
-           when 140 => data_wr <= X"7D";
-           when 141 => data_wr <= X"79";
-           when 142 => data_wr <= X"49";
-           when 143 => data_wr <= X"4D";
-           when 144 => data_wr <= X"49";
-           when others => data_wr <= X"00";
+           when 0 => data_wr_sig <= X"20"; -- set in 4-bit mode
+           when 1 => data_wr_sig <= X"38"; -- 0x38 2 lines and 5x7 matrix command
+           when 2 => data_wr_sig <= X"3C";
+           when 3 => data_wr_sig <= X"38";
+           when 4 => data_wr_sig <= X"88";
+           when 5 => data_wr_sig <= X"8C";
+           when 6 => data_wr_sig <= X"88";
+           when 7 => data_wr_sig <= X"38"; -- 0x38
+           when 8 => data_wr_sig <= X"3C";
+           when 9 => data_wr_sig <= X"38";
+           when 10 => data_wr_sig <= X"88";
+           when 11 => data_wr_sig <= X"8C";
+           when 12 => data_wr_sig <= X"88";
+           when 13 => data_wr_sig <= X"38"; -- 0x38
+           when 14 => data_wr_sig <= X"3C";
+           when 15 => data_wr_sig <= X"38";
+           when 16 => data_wr_sig <= X"88";
+           when 17 => data_wr_sig <= X"8C";
+           when 18 => data_wr_sig <= X"88";
+           when 19 => data_wr_sig <= X"08"; -- 0x01 Clear display screen command
+           when 20 => data_wr_sig <= X"0C";
+           when 21 => data_wr_sig <= X"08";
+           when 22 => data_wr_sig <= X"18";
+           when 23 => data_wr_sig <= X"1C";
+           when 24 => data_wr_sig <= X"18";
+           when 25 => data_wr_sig <= X"08"; -- 0x0C Display on, cursor off command 
+           when 26 => data_wr_sig <= X"0C";
+           when 27 => data_wr_sig <= X"08";
+           when 28 => data_wr_sig <= X"C8";
+           when 29 => data_wr_sig <= X"CC";
+           when 30 => data_wr_sig <= X"C8";
+           when 31 => data_wr_sig <= X"08"; -- 0x06 Increment cursor command
+           when 32 => data_wr_sig <= X"0C";
+           when 33 => data_wr_sig <= X"08";
+           when 34 => data_wr_sig <= X"68";
+           when 35 => data_wr_sig <= X"6C";
+           when 36 => data_wr_sig <= X"68";
+           when 37 => data_wr_sig <= X"88"; -- 0x80 1st line command
+           when 38 => data_wr_sig <= X"8C";
+           when 39 => data_wr_sig <= X"88";
+           when 40 => data_wr_sig <= X"08";
+           when 41 => data_wr_sig <= X"0C";
+           when 42 => data_wr_sig <= X"08";
+           when 43 => data_wr_sig <= X"49"; -- 0x41 'A' ASCII Data
+           when 44 => data_wr_sig <= X"4D";
+           when 45 => data_wr_sig <= X"49";
+           when 46 => data_wr_sig <= X"19";
+           when 47 => data_wr_sig <= X"1D";
+           when 48 => data_wr_sig <= X"19";
+           when 49 => data_wr_sig <= X"49"; -- 0x49 'I' ASCII Data
+           when 50 => data_wr_sig <= X"4D";
+           when 51 => data_wr_sig <= X"49";
+           when 52 => data_wr_sig <= X"99";
+           when 53 => data_wr_sig <= X"9D";
+           when 54 => data_wr_sig <= X"99";
+           when 55 => data_wr_sig <= X"49"; -- 0x4E 'N' ASCII Data
+           when 56 => data_wr_sig <= X"4D";
+           when 57 => data_wr_sig <= X"49";
+           when 58 => data_wr_sig <= X"E9";
+           when 59 => data_wr_sig <= X"ED";
+           when 60 => data_wr_sig <= X"E9";
+           when 61 => data_wr_sig <= pwm_byte(7 downto 4)&X"9"; -- Source # ASCII Data
+           when 62 => data_wr_sig <= pwm_byte(7 downto 4)&X"D";
+           when 63 => data_wr_sig <= pwm_byte(7 downto 4)&X"9";
+           when 64 => data_wr_sig <= pwm_byte(3 downto 0)&X"9";
+           when 65 => data_wr_sig <= pwm_byte(3 downto 0)&X"D";
+           when 66 => data_wr_sig <= pwm_byte(3 downto 0)&X"9";
+           when 67 => data_wr_sig <= X"C8"; -- 0xC0 2nd line command
+           when 68 => data_wr_sig <= X"CC";
+           when 69 => data_wr_sig <= X"C8";
+           when 70 => data_wr_sig <= X"08";
+           when 71 => data_wr_sig <= X"0C";
+           when 72 => data_wr_sig <= X"08";
+           when 73 => data_wr_sig <= X"49"; -- 0x43 'C' ASCII Data
+           when 74 => data_wr_sig <= X"4D";
+           when 75 => data_wr_sig <= X"49";
+           when 76 => data_wr_sig <= X"39";
+           when 77 => data_wr_sig <= X"3D";
+           when 78 => data_wr_sig <= X"39";
+           when 79 => data_wr_sig <= X"69"; -- 0x6C 'l' ASCII Data
+           when 80 => data_wr_sig <= X"6D";
+           when 81 => data_wr_sig <= X"69";
+           when 82 => data_wr_sig <= X"C9";
+           when 83 => data_wr_sig <= X"CD";
+           when 84 => data_wr_sig <= X"C9";
+           when 85 => data_wr_sig <= X"69"; -- 0x6C 'o' ASCII Data
+           when 86 => data_wr_sig <= X"6D";
+           when 87 => data_wr_sig <= X"69";
+           when 88 => data_wr_sig <= X"C9";
+           when 89 => data_wr_sig <= X"CD";
+           when 90 => data_wr_sig <= X"C9";
+           when 91 => data_wr_sig <= X"69"; -- 0x63 'c' ASCII Data
+           when 92 => data_wr_sig <= X"6D";
+           when 93 => data_wr_sig <= X"69";
+           when 94 => data_wr_sig <= X"39";
+           when 95 => data_wr_sig <= X"3D";
+           when 96 => data_wr_sig <= X"39";
+           when 97 => data_wr_sig <= X"69"; -- 0x6B 'k' ASCII Data
+           when 98 => data_wr_sig <= X"6D";
+           when 99 => data_wr_sig <= X"69";
+           when 100 => data_wr_sig <= X"B9";
+           when 101 => data_wr_sig <= X"BD";
+           when 102 => data_wr_sig <= X"B9";
+           when 103 => data_wr_sig <= X"29"; -- 0x20 ' ' ASCII Data
+           when 104 => data_wr_sig <= X"2D";
+           when 105 => data_wr_sig <= X"29";
+           when 106 => data_wr_sig <= X"09";
+           when 107 => data_wr_sig <= X"0D";
+           when 108 => data_wr_sig <= X"09";
+           when 109 => data_wr_sig <= X"49"; -- 0x4F 'O' ASCII Data
+           when 110 => data_wr_sig <= X"4D";
+           when 111 => data_wr_sig <= X"49";
+           when 112 => data_wr_sig <= X"F9";
+           when 113 => data_wr_sig <= X"FD";
+           when 114 => data_wr_sig <= X"F9";
+           when 115 => data_wr_sig <= X"79"; -- 0x75 'u' ASCII Data
+           when 116 => data_wr_sig <= X"7D";
+           when 117 => data_wr_sig <= X"79";
+           when 118 => data_wr_sig <= X"59";
+           when 119 => data_wr_sig <= X"5D";
+           when 120 => data_wr_sig <= X"59";
+           when 121 => data_wr_sig <= X"79"; -- 0x74 't' ASCII Data
+           when 122 => data_wr_sig <= X"7D";
+           when 123 => data_wr_sig <= X"79";
+           when 124 => data_wr_sig <= X"49";
+           when 125 => data_wr_sig <= X"4D";
+           when 126 => data_wr_sig <= X"49";
+           when 127 => data_wr_sig <= X"79"; -- 0x70 'p' ASCII Data
+           when 128 => data_wr_sig <= X"7D";
+           when 129 => data_wr_sig <= X"79";
+           when 130 => data_wr_sig <= X"09";
+           when 131 => data_wr_sig <= X"0D";
+           when 132 => data_wr_sig <= X"09";
+           when 133 => data_wr_sig <= X"79"; -- 0x75 'u' ASCII Data
+           when 134 => data_wr_sig <= X"7D";
+           when 135 => data_wr_sig <= X"79";
+           when 136 => data_wr_sig <= X"59";
+           when 137 => data_wr_sig <= X"5D";
+           when 138 => data_wr_sig <= X"59";
+           when 139 => data_wr_sig <= X"79"; -- 0x74 't' ASCII Data
+           when 140 => data_wr_sig <= X"7D";
+           when 141 => data_wr_sig <= X"79";
+           when 142 => data_wr_sig <= X"49";
+           when 143 => data_wr_sig <= X"4D";
+           when 144 => data_wr_sig <= X"49";
+           when others => data_wr_sig <= X"00";
        end case; 
     end process;
 		
@@ -263,7 +266,7 @@ Inst_i2c_master: i2c_master
 	            else
                     ena <= '1';  -- enable for communication with master
                     rw <= '0';   -- write
-                    data_wr <= data_wr;   --data to be written 
+                    --data_wr <= data_wr_sig;   --data to be written 
    	                state   <= ready;  -- ready to write           
                 end if;
 
