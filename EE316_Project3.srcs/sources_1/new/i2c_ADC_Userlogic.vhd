@@ -66,13 +66,23 @@ TYPE state_type IS (start, ready, data_valid, busy_high, repeat);
 signal state : state_type := start;
 signal reset_n, ena, busy : std_logic;
 signal rw : std_logic := '0'; -- Read/write signal sent to i2c_master, start by writing
-signal addr_master : std_logic_vector(6 downto 0) := "1001111";
+signal addr_master : std_logic_vector(6 downto 0) := "1001000";
 signal data_wr_sig : std_logic_vector(7 downto 0) := X"00"; -- Control byte of the ADC
-signal byteSel : integer range 0 to 500 := 0;
+--signal byteSel : integer range 0 to 500 := 0;
 signal data_rd : std_logic_vector(7 downto 0) := X"00"; -- read data register
-signal pwm_sig_reg : std_logic_vector := X"00";
+signal pwm_sig_reg : std_logic_vector(1 downto 0):= "00";
+
+signal scl_sig, sda_sig: std_logic; -- debug signals
+
+attribute mark_debug : string;
+attribute mark_debug of rw: signal is "true";
+attribute mark_debug of ena: signal is "true";
+--attribute mark_debug of scl_sig: signal is "true";
+--attribute mark_debug of sda_sig: signal is "true";
 
 begin
+    scl_sig <= scl;
+    sda_sig <= sda;
     reset_n <= not reset;
     data_wr_sig <= "000000"&pwm_sig; -- Control byte set to read from appropriate input port
 
@@ -107,7 +117,6 @@ Inst_i2c_master: i2c_master
         case state is 
             when start =>
 	            if reset = '1' then	
-		            byteSel <= 0;	
 		            ena 	<= '0'; 
 		            rw      <= '0'; --default to write
                     state   <= start; 
