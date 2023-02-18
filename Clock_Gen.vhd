@@ -21,7 +21,7 @@ architecture Behavioral of Clock_Gen is
 constant StepNum          : integer := 131;
 
 --signal Internal_vect       : std_logic_vector(8 downto 0) := x"000"; 
-signal Clk_out_cnt         : integer   := 0;
+signal Clk_out_cnt         : integer  range 0 to 55000 := 0;
 signal Clk_out_Max         : integer; -- half the clock cycle 
 signal Clk_out             : std_logic := '0';
 
@@ -40,7 +40,7 @@ begin
            Clk_out_cnt <= 0;
         elsif(Enable = '1') then
             if rising_edge(clk) then
-                if Clk_out_cnt >= Clk_out_Max then
+                if Clk_out_cnt >= Clk_out_Max or Clk_out_cnt = 50000 then
                     Clk_out <= not Clk_out;
                     Clk_out_cnt <= 0;
                 else
