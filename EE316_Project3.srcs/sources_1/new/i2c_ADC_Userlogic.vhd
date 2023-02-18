@@ -32,18 +32,18 @@ use IEEE.STD_LOGIC_1164.ALL;
 --use UNISIM.VComponents.all;
 
 entity i2c_ADC_Userlogic is
+    GENERIC(
+    input_clk : INTEGER := 50_000_000; --input clock speed from user logic in Hz
+    bus_clk   : INTEGER := 400_000);   --speed the i2c bus (scl) will run at in Hz
     Port ( 
-        clk : in STD_LOGIC;
-        adc_data : out std_logic_vector(7 downto 0);
-        sda, scl: inout std_logic
+        clk, reset : in STD_LOGIC;
+        pwm_sig    : in std_logic_vector(1 downto 0);
+        adc_data   : out std_logic_vector(7 downto 0);
+        sda, scl   : inout std_logic
     );
 end i2c_ADC_Userlogic;
 
 architecture Behavioral of i2c_ADC_Userlogic is
-signal reset_n, ena, rw, busy : std_logic;
-signal addr_master : std_logic_vector(6 downto 0) := "1001111";
-signal data_wr : std_logic_vector(7 downto 0);
-
 component i2c_master IS
   GENERIC(
     input_clk : INTEGER := 50_000_000; --input clock speed from user logic in Hz
@@ -62,22 +62,91 @@ component i2c_master IS
     scl       : INOUT  STD_LOGIC);                   --serial clock output of i2c bus
 END component;
 
+TYPE state_type IS (start, ready, data_valid, busy_high, repeat);
+signal state : state_type := start;
+signal reset_n, ena, busy : std_logic;
+signal rw : std_logic := '0'; -- Read/write signal sent to i2c_master, start by writing
+signal addr_master : std_logic_vector(6 downto 0) := "1001111";
+signal data_wr_sig : std_logic_vector(7 downto 0) := X"00"; -- Control byte of the ADC
+signal byteSel : integer range 0 to 500 := 0;
+signal data_rd : std_logic_vector(7 downto 0) := X"00"; -- read data register
+signal pwm_sig_reg : std_logic_vector := X"00";
+
 begin
+    reset_n <= not reset;
+    data_wr_sig <= "000000"&pwm_sig; -- Control byte set to read from appropriate input port
+
 Inst_i2c_master: i2c_master
-	GENERIC map(input_clk => 50_000_000,
-                bus_clk   => 50_000)
+	GENERIC map(input_clk => input_clk,
+                bus_clk   => bus_clk)
 	port map(
 		    clk       => clk,               
             reset_n   => reset_n,              
             ena       => ena,         
             addr      => addr_master,
             rw        => rw,      
-            data_wr   => data_wr,
+            data_wr   => data_wr_sig,
             busy      => busy,           
-            data_rd   => open,
+            data_rd   => data_rd,
             ack_error => open,
             sda       => sda,                 
             scl       => scl
-		); 
+		);
+    
+--    process(byteSel)
+--    begin
+--        case byteSel is
+--           when 0 => data_wr_sig <= X"20";
+--           when others => data_wr_sig <= X"00";
+--       end case; 
+--    end process;
+		
+    process(clk)
+    begin
+    if(clk'event and clk = '1') then
+        case state is 
+            when start =>
+	            if reset = '1' then	
+		            byteSel <= 0;	
+		            ena 	<= '0'; 
+		            rw      <= '0'; --default to write
+                    state   <= start; 
+	            else
+                    ena <= '1';  -- enable for communication with master
+   	                state   <= ready;  -- ready to write           
+                end if;
 
+            when ready =>		
+	            if busy = '0' then                      -- state to signal ready for transaction
+	      	        ena     <= '1';
+	      	        state   <= data_valid;
+	            end if;
+
+            when data_valid =>                              --state for conducting this transaction
+                if busy = '1' then  
+        	        ena     <= '0';
+        	        state   <= busy_high;
+                end if;
+
+            when busy_high => 
+                if busy = '0' then                -- busy just went low 
+		            state <= repeat;
+   	            end if;		     
+            when repeat => 
+                if rw = '0' then -- after writing control byte, start read process
+                    rw <= '1';  -- read
+                else
+                    adc_data <= data_rd; -- set acd_data to read data
+                    if pwm_sig /= pwm_sig_reg then --if pwm_sig has changed, start write process
+                        rw <= '0'; -- write
+                    end if;
+                end if;
+                
+   	            state <= start; 
+            when others => null;
+            end case;   
+            
+            pwm_sig_reg <= pwm_sig;
+    end if;  
+    end process;
 end Behavioral;
