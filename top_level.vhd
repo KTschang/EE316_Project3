@@ -83,13 +83,19 @@ end component;
 TYPE STATE_TYPE is (init, AIN0, AIN0_clk, AIN1, AIN1_clk, AIN2, AIN2_clk, AIN3, AIN3_clk);
 signal state : STATE_TYPE:= init;	
 
-signal key0_db : std_logic;
 signal key1_db : std_logic;
+signal key2_db : std_logic;
 	
 signal reset_db         : std_LOGIC;
 signal reset_power_on   : std_LOGIC;
 signal reset_sig		: std_logic;   --output of OR gate
-	
+
+signal clk_gen_e	: std_logic;
+
+signal pwm_state : std_logic_vector(1 downto 0);
+
+signal adc_d : std_logic_vector(7 downto 0);
+
 begin	
 	
 Inst_key2_db: debounce
@@ -134,43 +140,44 @@ MAX 	=> 15)
 	);		
 	
 Inst_ADC_I2C: i2c_ADC_Userlogic
+generic map(input_clk => 50_000_000, --input clock speed from user logic in Hz
+			bus_clk   => 10_000)   --speed the i2c bus (scl) will run at in Hz
 	port map(
 	clk			=> clk,
-	clk_gen_en  => 
-	reset 		=>
-    pwm_sig     =>    
-    sda			=> 
-	scl        	=>
-    
+	clk_gen_en  => clk_gen_e,
+	reset 		=> reset_db,
+    pwm_sig     => pwm_state,
+	adc_data    => adc_d,
+    sda			=> SDA1,
+	scl        	=> SCL1
 	);
 
 Inst_lcd_i2c: i2c_lcd_userlogic
+generic map(input_clk => 50_000_000, --input clock speed from user logic in Hz
+			bus_clk   => 50_000)   --speed the i2c bus (scl) will run at in Hz
 	port map(
 	clk			=> clk,
-	clk_gen_en  =>	
-	reset 		=>
-    pwm_sig     =>  
-    sda 		=>
-	scl        	=>
-			
+	clk_gen_en  => clk_gen_e,	
+	reset 		=> reset_db,
+    pwm_sig     => pwm_state,
+    sda 		=> SDA0,
+	scl        	=> SCL0		
 	);
 	
 Inst_clock: Clock_Gen
 	port map(
     clk         => clk,
-    Enable      =>
-    Input       =>
-    reset       =>
-    ClockOut 	=>
-
+    Enable      => clk_gen_e,
+    Input       => adc_d,
+    reset       => reset_db,
+    ClockOut 	=> CLKo
 	);
 
 Inst_pwm: PWM_Manager
 	port map(
 	clk 	=> clk,
-	count 	=> 
-	PWM_out =>
-		
+	count 	=> adc_d,
+	PWM_out => PWMo	
 	);
 	
 	kp <= key1_db or key2_db;
@@ -181,6 +188,7 @@ Inst_pwm: PWM_Manager
 	if(clk'event and clk = '1') then
 	
 		if reset_sig = '1' then
+		clk_gen_e <= '0';
 		state <= init;
 		end if;
 	
@@ -190,6 +198,8 @@ Inst_pwm: PWM_Manager
 		
 			when AIN0 =>
 			
+			pwm_state <= "00";
+			
 			if(kp = '1') then
 			
 				if(key1_db = '1') then
@@ -197,7 +207,8 @@ Inst_pwm: PWM_Manager
 					state <= AIN1;
 			
 					elsif(key2_db = '1') then
-			
+					
+					clk_gen_e <= '1';
 					state <= AIN0_clk;
 			
 					else
@@ -217,7 +228,8 @@ Inst_pwm: PWM_Manager
 					state <= AIN1_clk;
 			
 					elsif(key2_db = '1') then
-			
+					
+					clk_gen_e <= '0';
 					state <= AIN0;
 			
 					else
@@ -232,6 +244,8 @@ Inst_pwm: PWM_Manager
 			
 			when AIN1 =>
 			
+			pwm_state <= "01";
+			
 			if(kp = '1') then
 			
 				if(key1_db = '1') then
@@ -239,7 +253,8 @@ Inst_pwm: PWM_Manager
 					state <= AIN2;
 			
 					elsif(key2_db = '1') then
-			
+					
+					clk_gen_e <= '1';
 					state <= AIN1_clk;
 			
 					else
@@ -259,7 +274,8 @@ Inst_pwm: PWM_Manager
 					state <= AIN2_clk;
 			
 					elsif(key2_db = '1') then
-			
+					
+					clk_gen_e <= '0';
 					state <= AIN1;
 			
 					else
@@ -274,6 +290,8 @@ Inst_pwm: PWM_Manager
 			
 			when AIN2 =>
 			
+			pwm_state <= "10";
+			
 			if(kp = '1') then
 			
 				if(key1_db = '1') then
@@ -281,7 +299,8 @@ Inst_pwm: PWM_Manager
 					state <= AIN3;
 			
 					elsif(key2_db = '1') then
-			
+					
+					clk_gen_e <= '1';
 					state <= AIN2_clk;
 			
 					else
@@ -301,7 +320,8 @@ Inst_pwm: PWM_Manager
 					state <= AIN3_clk;
 			
 					elsif(key2_db = '1') then
-			
+					
+					clk_gen_e <= '0';
 					state <= AIN2;
 			
 					else
@@ -316,6 +336,8 @@ Inst_pwm: PWM_Manager
 	
 			when AIN3 =>
 			
+			pwm_state <= "11";
+			
 			if(kp = '1') then
 			
 				if(key1_db = '1') then
@@ -323,7 +345,8 @@ Inst_pwm: PWM_Manager
 				state <= AIN0;
 			
 				elsif(key2_db = '1') then
-			
+				
+				clk_gen_e <= '1';
 				state <= AIN3_clk;
 			
 				else
@@ -343,7 +366,8 @@ Inst_pwm: PWM_Manager
 					state <= AIN0_clk;
 			
 					elsif(key2_db = '1') then
-			
+					
+					clk_gen_e <= '0';
 					state <= AIN3;
 			
 					else
