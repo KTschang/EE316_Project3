@@ -1,24 +1,3 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 02/16/2023 12:24:43 PM
--- Design Name: 
--- Module Name: i2c_lcd_userlogic - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
-
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
@@ -70,6 +49,8 @@ signal data_wr_sig : std_logic_vector(7 downto 0);
 signal pwm_byte : std_logic_vector(7 downto 0); -- Final byte to display AIN#
 signal byteSel : integer range 0 to 500 := 0;
 signal counter_delay : integer range 0 to 250000 := 0;
+signal clear_display : std_logic := '0';
+signal clk_gen_en_reg : std_logic;
 
 attribute mark_debug : string;
 attribute mark_debug of byteSel: signal is "true";
@@ -129,24 +110,24 @@ Inst_i2c_master: i2c_master
            when 18  => data_wr_sig <= X"88";
            when 19  => data_wr_sig <= X"8C";
            when 20  => data_wr_sig <= X"88";
-           when 21  => data_wr_sig <= X"08"; -- 0x01 Clear display screen command
+           when 21  => data_wr_sig <= X"08"; -- 0x06 Increment cursor command
            when 22  => data_wr_sig <= X"0C";
            when 23  => data_wr_sig <= X"08";
-           when 24  => data_wr_sig <= X"18";
-           when 25  => data_wr_sig <= X"1C";
-           when 26  => data_wr_sig <= X"18";
+           when 24  => data_wr_sig <= X"68";
+           when 25  => data_wr_sig <= X"6C";
+           when 26  => data_wr_sig <= X"68";
            when 27  => data_wr_sig <= X"08"; -- 0x0C Display on, cursor off command 
            when 28  => data_wr_sig <= X"0C";
            when 29  => data_wr_sig <= X"08";
            when 30  => data_wr_sig <= X"C8";
            when 31  => data_wr_sig <= X"CC";
            when 32  => data_wr_sig <= X"C8";
-           when 33  => data_wr_sig <= X"08"; -- 0x06 Increment cursor command
+           when 33  => data_wr_sig <= X"08"; -- 0x01 Clear display screen command
            when 34  => data_wr_sig <= X"0C";
            when 35  => data_wr_sig <= X"08";
-           when 36  => data_wr_sig <= X"68";
-           when 37  => data_wr_sig <= X"6C";
-           when 38  => data_wr_sig <= X"68";
+           when 36  => data_wr_sig <= X"18";
+           when 37  => data_wr_sig <= X"1C";
+           when 38  => data_wr_sig <= X"18";
            when 39  => data_wr_sig <= X"88"; -- 0x80 1st line command
            when 40  => data_wr_sig <= X"8C";
            when 41  => data_wr_sig <= X"88";
@@ -262,6 +243,10 @@ Inst_i2c_master: i2c_master
     process(clk)
     begin
     if(clk'event and clk = '1') then
+        if clk_gen_en_reg /= clk_gen_en then
+            clear_display <= '1';
+        end if;
+        
         case state is 
             when start =>
 	            if reset = '1' then	
@@ -296,7 +281,10 @@ Inst_i2c_master: i2c_master
                 if counter_delay = 250000 then
                     if byteSel < 68 or ((byteSel < 146) and (clk_gen_en = '1'))then
                         byteSel <= byteSel + 1;
-                    else	 
+                    elsif clear_display = '1' then
+                        byteSel <= 33;
+                        clear_display <= '0';
+                    else
                         byteSel <= 39;        
                     end if; 		  
                     counter_delay <= 0;
@@ -306,7 +294,9 @@ Inst_i2c_master: i2c_master
                     state <= repeat;
    	            end if;
             when others => null;
-            end case;   
+        end case;
+        
+        clk_gen_en_reg <= clk_gen_en;
     end if;  
     end process;
 
