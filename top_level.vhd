@@ -20,22 +20,13 @@ end top_level;
 
 architecture Structural of top_level is 
 
-component clk_enabler is
-		 GENERIC (
-			 CONSTANT cnt_max : integer := 49999999);      --  1.0 Hz 	
-		 PORT(	
-			clock						: in std_logic;	 
-			clk_en					: out std_logic
-		);
-	end component;
-
 component Reset_Delay IS
 	    generic(MAX: integer 	:= 15);	
 		 PORT (
 			  iCLK 					: IN std_logic;	
 			  oRESET 				: OUT std_logic
 				);	
-	end component;
+end component;
 
 component debounce is
 	GENERIC (
@@ -46,7 +37,7 @@ component debounce is
            BTN_O 	: out  STD_LOGIC;
            TOGGLE_O : out  STD_LOGIC;
 		   PULSE_O  : out STD_LOGIC);
-	end component;
+end component;
 
 component PWM_Manager is
 	port(
@@ -54,60 +45,133 @@ component PWM_Manager is
 		count : in std_logic_vector(7 downto 0);
 		PWM_out : out std_logic
 	);
-	end component;
-
-	TYPE STATE_TYPE is (init, AIN0, AIN0_clk, AIN1, AIN1_clk, AIN2, AIN2_clk, AIN3, AIN3_clk);
-	signal state : STATE_TYPE:= init;	
-
-
-	signal key0_db : std_logic;
-	signal key1_db : std_logic;
+end component;
 	
-	signal reset_db            			: std_LOGIC;
-	signal reset_power_on       		   : std_LOGIC;
-	signal reset_sig							: std_logic;   --output of OR gate
+component i2c_ADC_Userlogic is
+    GENERIC(
+    input_clk : INTEGER := 50_000_000; --input clock speed from user logic in Hz
+    bus_clk   : INTEGER := 400_000);   --speed the i2c bus (scl) will run at in Hz
+    Port ( 
+        clk, reset : in STD_LOGIC;
+        pwm_sig    : in std_logic_vector(1 downto 0);
+        adc_data   : out std_logic_vector(7 downto 0);
+        sda, scl   : inout std_logic
+    );
+end component; 
+
+component i2c_lcd_userlogic is
+    GENERIC(
+        input_clk : INTEGER := 50_000_000; --input clock speed from user logic in Hz
+        bus_clk   : INTEGER := 400_000);   --speed the i2c bus (scl) will run at in Hz
+    Port ( 
+        clk, clk_gen_en, reset : in STD_LOGIC;
+        pwm_sig         : in std_logic_vector(1 downto 0);
+        sda, scl        : inout std_logic
+    );
+end component;
+
+component Clock_Gen is
+  Port ( 
+    clk         : in std_logic;
+    Enable      : in std_logic := '0';
+    Input       : in std_logic_vector(7 downto 0); 
+    reset       : in std_logic := '0';
+    ClockOut 	: out std_logic -- output clock
+  );
+end component;
+
+TYPE STATE_TYPE is (init, AIN0, AIN0_clk, AIN1, AIN1_clk, AIN2, AIN2_clk, AIN3, AIN3_clk);
+signal state : STATE_TYPE:= init;	
+
+signal key0_db : std_logic;
+signal key1_db : std_logic;
 	
-	begin	
-	Inst_key2_db: debounce
-	GENERIC map(
-	CNTR_MAX => X"FFFF")  
+signal reset_db         : std_LOGIC;
+signal reset_power_on   : std_LOGIC;
+signal reset_sig		: std_logic;   --output of OR gate
+	
+begin	
+	
+Inst_key2_db: debounce
+GENERIC map(
+CNTR_MAX => X"FFFF")  
+	Port map ( 
+	BTN_I 	 => key2,
+    CLK 	 => clk,
+    BTN_O 	 => open,
+    TOGGLE_O => open,
+	PULSE_O  => key2_db
+	);
+	
+Inst_key1_db: debounce
+GENERIC map(
+CNTR_MAX => X"FFFF")  
     Port map ( 
-		   BTN_I 	=> key2,
-           CLK 	=> clk,
-           BTN_O 	=> open,
-           TOGGLE_O => open,
-		   PULSE_O  => key2_db
-			);
-	
-	Inst_key1_db: debounce
-	GENERIC map(
-	CNTR_MAX => X"FFFF")  
-    Port map ( 
-		   BTN_I 	=> key1,
-           CLK 	=> clk,
-           BTN_O 	=> open,
-           TOGGLE_O => open,
-		   PULSE_O  => key1_db
-			);
+	BTN_I 	 => key1,
+    CLK 	 => clk,
+    BTN_O 	 => open,
+    TOGGLE_O => open,
+	PULSE_O  => key1_db
+	);
 			
-	Inst_key0_db: debounce
-	GENERIC map(
-	CNTR_MAX => X"FFFF")  
-    Port map ( 
-		   BTN_I 	=> key0,
-           CLK 	=> clk,
-           BTN_O 	=> reset_db,
-           TOGGLE_O => open,
-		   PULSE_O  => open
-			);
+Inst_key0_db: debounce
+GENERIC map(
+CNTR_MAX => X"FFFF")  
+	Port map ( 
+	BTN_I 	 => key0,
+    CLK 	 => clk,
+    BTN_O 	 => reset_db,
+    TOGGLE_O => open,
+	PULSE_O  => open
+	);
 
-	Inst_clk_Reset_Delay: Reset_Delay	
-			generic map(
-			MAX 	=> 15) -- MAX can be changed to a much larger value (no more than 65535) for implementation
-			port map(
-			iCLK 		=> clk,	
-			oRESET    => reset_power_on
-			);		
+Inst_clk_Reset_Delay: Reset_Delay	
+generic map(
+MAX 	=> 15) 
+	port map(
+	iCLK 		=> clk,	
+	oRESET    	=> reset_power_on		
+	);		
+	
+Inst_ADC_I2C: i2c_ADC_Userlogic
+	port map(
+	clk			=> clk,
+	clk_gen_en  => 
+	reset 		=>
+    pwm_sig     =>    
+    sda			=> 
+	scl        	=>
+    
+	);
+
+Inst_lcd_i2c: i2c_lcd_userlogic
+	port map(
+	clk			=> clk,
+	clk_gen_en  =>	
+	reset 		=>
+    pwm_sig     =>  
+    sda 		=>
+	scl        	=>
+			
+	);
+	
+Inst_clock: Clock_Gen
+	port map(
+    clk         => clk,
+    Enable      =>
+    Input       =>
+    reset       =>
+    ClockOut 	=>
+
+	);
+
+Inst_pwm: PWM_Manager
+	port map(
+	clk 	=> clk,
+	count 	=> 
+	PWM_out =>
+		
+	);
 	
 	kp <= key1_db or key2_db;
 	reset_sig <= reset_power_on or (not reset_db);
