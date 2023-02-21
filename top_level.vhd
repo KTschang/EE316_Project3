@@ -8,6 +8,7 @@ entity top_level is
 			clk     		: in std_LOGIC;  --20ns 50MHz
 			key2			: in std_logic;
 			key1			: in std_logic;
+			key0_db			: in std_logic;
 			PWMo			: out std_LOGIC;
 			CLKo			: out std_LOGIC;
 			SCL0			: inout std_logic;
@@ -61,7 +62,12 @@ component PWM_Manager is
 
 	signal key0_db : std_logic;
 	signal key1_db : std_logic;
-
+	
+	signal reset_db            			: std_LOGIC;
+	signal reset_power_on       		   : std_LOGIC;
+	signal reset_sig							: std_logic;   --output of OR gate
+	
+	begin	
 	Inst_key2_db: debounce
 	GENERIC map(
 	CNTR_MAX => X"FFFF")  
@@ -83,10 +89,28 @@ component PWM_Manager is
            TOGGLE_O => open,
 		   PULSE_O  => key1_db
 			);
+			
+	Inst_key0_db: debounce
+	GENERIC map(
+	CNTR_MAX => X"FFFF")  
+    Port map ( 
+		   BTN_I 	=> key0,
+           CLK 	=> clk,
+           BTN_O 	=> reset_db,
+           TOGGLE_O => open,
+		   PULSE_O  => open
+			);
 
-	begin
+	Inst_clk_Reset_Delay: Reset_Delay	
+			generic map(
+			MAX 	=> 15) -- MAX can be changed to a much larger value (no more than 65535) for implementation
+			port map(
+			iCLK 		=> clk,	
+			oRESET    => reset_power_on
+			);		
 	
 	kp <= key1_db or key2_db;
+	reset_sig <= reset_power_on or (not reset_db);
 	
 	process(clk)
 	begin
