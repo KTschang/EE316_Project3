@@ -8,7 +8,7 @@ entity top_level is
 			clk     		: in std_LOGIC;  --20ns 50MHz
 			key2			: in std_logic;
 			key1			: in std_logic;
-			key0_db			: in std_logic;
+			key0			: in std_logic;
 			PWMo			: out std_LOGIC;
 			CLKo			: out std_LOGIC;
 			SCL0			: inout std_logic;
