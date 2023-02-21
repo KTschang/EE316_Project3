@@ -193,9 +193,15 @@ Inst_pwm: PWM_Manager
 		end if;
 	
 		case state is
-			when init =>
-			state <= AIN0;
 		
+			when init =>
+			
+			clk_gen_e <= '0';
+			state <= AIN0;
+			pwm_state <= "00";
+			
+	--------------------------------------------------		
+			
 			when AIN0 =>
 			
 			pwm_state <= "00";
@@ -380,6 +386,7 @@ Inst_pwm: PWM_Manager
 	
 	--------------------------------------------------
 	
-		end if;
+		end case;
+	end if;
 	end process;
 end Structural;
