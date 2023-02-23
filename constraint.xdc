@@ -4,14 +4,14 @@
 #set_property IOSTANDARD LVCMOS33 [get_ports {GPIO_1_tri_io[*]}]
 ## GPIO Pins
 ## GPIO2
-set_property PACKAGE_PIN K15 [get_ports {KEY0}]
-set_property IOSTANDARD LVCMOS33 [get_ports KEY0]
+set_property PACKAGE_PIN K15 [get_ports {key0}]
+set_property IOSTANDARD LVCMOS33 [get_ports key0]
 ## GPIO3
-set_property PACKAGE_PIN J14 [get_ports {KEY1}]
-set_property IOSTANDARD LVCMOS33 [get_ports KEY1]
+set_property PACKAGE_PIN J14 [get_ports {key1}]
+set_property IOSTANDARD LVCMOS33 [get_ports key1]
 ## GPIO4
-set_property PACKAGE_PIN H12 [get_ports {KEY2}]
-set_property IOSTANDARD LVCMOS33 [get_ports KEY2]
+set_property PACKAGE_PIN H12 [get_ports {key2}]
+set_property IOSTANDARD LVCMOS33 [get_ports key2]
 
 ## GPIO5
 set_property PACKAGE_PIN N14 [get_ports {SDA0}]
