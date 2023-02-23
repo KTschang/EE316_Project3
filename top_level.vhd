@@ -28,7 +28,7 @@ component Reset_Delay IS
 				);	
 end component;
 
-component debounce is
+component btn_debounce_toggle is
 	GENERIC (
 	CONSTANT CNTR_MAX : std_logic_vector(15 downto 0) := X"FFFF");  
     Port ( 
@@ -85,20 +85,21 @@ signal state : STATE_TYPE:= init;
 
 signal key1_db : std_logic;
 signal key2_db : std_logic;
+signal kp : std_logic;
 	
 signal reset_db         : std_LOGIC;
 signal reset_power_on   : std_LOGIC;
 signal reset_sig		: std_logic;   --output of OR gate
 
-signal clk_gen_e	: std_logic;
+signal clk_gen_e	: std_logic := '0';
 
-signal pwm_state : std_logic_vector(1 downto 0);
+signal pwm_state : std_logic_vector(1 downto 0) := "00";
 
 signal adc_d : std_logic_vector(7 downto 0);
 
 begin	
 	
-Inst_key2_db: debounce
+Inst_key2_db: btn_debounce_toggle
 GENERIC map(
 CNTR_MAX => X"FFFF")  
 	Port map ( 
@@ -109,7 +110,7 @@ CNTR_MAX => X"FFFF")
 	PULSE_O  => key2_db
 	);
 	
-Inst_key1_db: debounce
+Inst_key1_db: btn_debounce_toggle
 GENERIC map(
 CNTR_MAX => X"FFFF")  
     Port map ( 
@@ -120,7 +121,7 @@ CNTR_MAX => X"FFFF")
 	PULSE_O  => key1_db
 	);
 			
-Inst_key0_db: debounce
+Inst_key0_db: btn_debounce_toggle
 GENERIC map(
 CNTR_MAX => X"FFFF")  
 	Port map ( 
@@ -141,11 +142,10 @@ MAX 	=> 15)
 	
 Inst_ADC_I2C: i2c_ADC_Userlogic
 generic map(input_clk => 50_000_000, --input clock speed from user logic in Hz
-			bus_clk   => 10_000)   --speed the i2c bus (scl) will run at in Hz
+			bus_clk   => 100_000)   --speed the i2c bus (scl) will run at in Hz
 	port map(
 	clk			=> clk,
-	clk_gen_en  => clk_gen_e,
-	reset 		=> reset_db,
+	reset 		=> reset_sig,
     pwm_sig     => pwm_state,
 	adc_data    => adc_d,
     sda			=> SDA1,
@@ -154,11 +154,11 @@ generic map(input_clk => 50_000_000, --input clock speed from user logic in Hz
 
 Inst_lcd_i2c: i2c_lcd_userlogic
 generic map(input_clk => 50_000_000, --input clock speed from user logic in Hz
-			bus_clk   => 50_000)   --speed the i2c bus (scl) will run at in Hz
+			bus_clk   => 400_000)   --speed the i2c bus (scl) will run at in Hz
 	port map(
 	clk			=> clk,
 	clk_gen_en  => clk_gen_e,	
-	reset 		=> reset_db,
+	reset 		=> reset_sig,
     pwm_sig     => pwm_state,
     sda 		=> SDA0,
 	scl        	=> SCL0		
@@ -169,7 +169,7 @@ Inst_clock: Clock_Gen
     clk         => clk,
     Enable      => clk_gen_e,
     Input       => adc_d,
-    reset       => reset_db,
+    reset       => reset_sig,
     ClockOut 	=> CLKo
 	);
 
@@ -181,7 +181,7 @@ Inst_pwm: PWM_Manager
 	);
 	
 	kp <= key1_db or key2_db;
-	reset_sig <= reset_power_on or (not reset_db);
+	reset_sig <= reset_power_on or reset_db;
 	
 	process(clk)
 	begin
@@ -226,6 +226,8 @@ Inst_pwm: PWM_Manager
 			end if;
 			
 			when AIN0_clk =>
+			
+			pwm_state <= "00";
 			
 			if(kp = '1') then
 			
@@ -273,6 +275,8 @@ Inst_pwm: PWM_Manager
 			
 			when AIN1_clk =>
 			
+			pwm_state <= "01";
+			
 			if(kp = '1') then
 			
 				if(key1_db = '1') then
@@ -319,6 +323,8 @@ Inst_pwm: PWM_Manager
 			
 			when AIN2_clk =>
 			
+			pwm_state <= "10";
+			
 			if(kp = '1') then
 			
 				if(key1_db = '1') then
@@ -364,6 +370,8 @@ Inst_pwm: PWM_Manager
 			end if;
 			
 			when AIN3_clk =>
+			
+			pwm_state <= "11";
 			
 			if(kp = '1') then
 			
